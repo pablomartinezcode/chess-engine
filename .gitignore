@@ -1,0 +1,11 @@
+#Compiled Binaries
+*.exe
+*.out
+*.o
+*.obj
+
+#Debug Files
+*.log
+
+#VS Code
+*.vscode/
