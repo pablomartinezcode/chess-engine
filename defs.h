@@ -16,3 +16,10 @@ enum Squares {
     a7 = 48, b7, c7, d7, e7, f7, g7, h7,
     a8 = 56, b8, c8, d8, e8, f8, g8, h8,
 };
+
+const Bitboard FILE_A = 0x0101010101010101ULL;
+const Bitboard FILE_H = 0x8080808080808080ULL;
+
+const Bitboard FILE_AB = FILE_A | (FILE_A << 1);
+const Bitboard FILE_GH = FILE_H | (FILE_H >> 1);
+
