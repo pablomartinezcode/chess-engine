@@ -8,6 +8,7 @@ int main(void){
 	std::cout << "Chess Engine Alpha\n";
 
 	Board myBoard = generateBoard();
+	initMoveTable();
 	
 
 
@@ -16,7 +17,7 @@ int main(void){
 	while (true)
 	{
 		std::vector<Move> moveList;
-		generatePawnMoves(myBoard, moveList);
+		generateKnightMoves(myBoard, moveList);
 		for(const Move& m : moveList){
 			std::cout << "Move: " << m.getFrom() << " to " << m.getTo() << std::endl; 
 		}

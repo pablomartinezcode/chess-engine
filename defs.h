@@ -20,6 +20,6 @@ enum Squares {
 const Bitboard FILE_A = 0x0101010101010101ULL;
 const Bitboard FILE_H = 0x8080808080808080ULL;
 
-const Bitboard FILE_AB = FILE_A | (FILE_A << 1);
-const Bitboard FILE_GH = FILE_H | (FILE_H >> 1);
+const Bitboard FILE_B = 0x0202020202020202ULL;
+const Bitboard FILE_G = 0x4040404040404040ULL;
 

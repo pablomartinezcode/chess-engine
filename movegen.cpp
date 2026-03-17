@@ -1,6 +1,8 @@
 #include "movegen.h"
 #include <bit>
 
+
+
 void addPawnMove(std::vector<Move>& moveList, int from, int to, int flag, bool isWhite) {
     bool isPromotion = (isWhite && to > 55) || (!isWhite && to < 8);
 
@@ -61,5 +63,41 @@ void generatePawnMoves(const Board& b, std::vector<Move>& moveList){
         int flag = (toSq == b.enPassantSq) ? EPCAPTURE : CAPTURE;
         addPawnMove(moveList, fromSq, toSq, flag, b.whiteMove);
         captureLeft &= (captureLeft - 1);
+    }
+}
+
+Bitboard KnightMoves[64];
+
+void initMoveTable(){
+    for(int sq = 0; sq < 64; sq++){
+        Bitboard b = 0ULL;
+        Bitboard knight = (1ULL << sq);
+        // Vertical 2, Horizontal 1
+        if (!(knight & FILE_A)) b |= (knight << 15) | (knight >> 17);
+        if (!(knight & FILE_H)) b |= (knight << 17) | (knight >> 15);
+        
+        // Vertical 1, Horizontal 2
+        if (!(knight & (FILE_A | FILE_B))) b |= (knight << 6) | (knight >> 10);
+        if (!(knight & (FILE_G | FILE_H))) b |= (knight << 10) | (knight >> 6);
+
+        KnightMoves[sq] = b;
+    }
+}
+
+void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
+    Bitboard knights = (b.whiteMove) ? b.pieces[KNIGHT_W] : b.pieces[KNIGHT_B];
+    Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+
+    while(knights){
+        int fromSq = std::countr_zero(knights);
+
+        Bitboard moves = KnightMoves[fromSq] & ~myPieces;
+        while(moves){
+            int toSq = std::countr_zero(moves);
+            int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
+            moveList.push_back(createMove(fromSq, toSq, flag));
+            moves &= (moves - 1);
+        }
+        knights &= (knights - 1);
     }
 }
