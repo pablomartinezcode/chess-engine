@@ -62,7 +62,16 @@ void printBitboard(Bitboard bb) {
 void makeMove(Board &b, Move m){
     int from = m.getFrom();
     int to = m.getTo();
+    int flags = m.getFlags();
     int piece = -1;
+
+    //RESET enPassantSq at the start of every move
+    b.enPassantSq = -1;
+
+    if(flags == DOUBLE_PAWN_PUSH){
+        b.enPassantSq = (b.whiteMove) ? (from + 8) : (from - 8);
+    }
+
 
     //1. FIND MOVING PIECE
     int start = (b.whiteMove) ? 0 : 6;
