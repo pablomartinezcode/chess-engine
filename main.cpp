@@ -14,7 +14,6 @@ int main(void){
 	
 
 	findAllMagicSquares();
-	std::cout << "Count: " << CPUOPERATIONS << std::endl;
 	
 
 	// while (true)
