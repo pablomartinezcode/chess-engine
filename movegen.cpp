@@ -70,18 +70,19 @@ Bitboard KnightMoves[64];
 
 void initMoveTable(){
     for(int sq = 0; sq < 64; sq++){
-        Bitboard b = 0ULL;
+        Bitboard moves = 0ULL;
         Bitboard knight = (1ULL << sq);
         // Vertical 2, Horizontal 1
-        if (!(knight & FILE_A)) b |= (knight << 15) | (knight >> 17);
-        if (!(knight & FILE_H)) b |= (knight << 17) | (knight >> 15);
+        if (!(knight & FILE_A)) moves |= (knight << 15) | (knight >> 17);
+        if (!(knight & FILE_H)) moves |= (knight << 17) | (knight >> 15);
         
         // Vertical 1, Horizontal 2
-        if (!(knight & (FILE_A | FILE_B))) b |= (knight << 6) | (knight >> 10);
-        if (!(knight & (FILE_G | FILE_H))) b |= (knight << 10) | (knight >> 6);
+        if (!(knight & (FILE_A | FILE_B))) moves |= (knight << 6) | (knight >> 10);
+        if (!(knight & (FILE_G | FILE_H))) moves |= (knight << 10) | (knight >> 6);
 
-        KnightMoves[sq] = b;
+        KnightMoves[sq] = moves;
     }
+
 }
 
 void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
@@ -101,3 +102,23 @@ void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
         knights &= (knights - 1);
     }
 }
+
+// void generateBishopMoves(const Board& b, std::vector<Move>& moveList){
+//     Bitboard bishops = (b.whiteMove) ? b.pieces[BISHOP_W] : b.pieces[BISHOP_B];
+//     Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+
+//     while(bishops){
+//         int fromSq = std::countr_zero(bishops);
+//         Bitboard bishop = (1ULL << fromSq);
+//         Bitboard moves = 0ULL;
+//         bool tr = false, tl = false, br = false, bl = false;
+
+//         bishops &= (bishops - 1);
+//     }
+
+//     // for(int i = 1; i <= 7; i++){
+//     //     if(!(bishop & FILE_H || b & FILE_H)) b |= (bishop << (9*i)) | (bishop >> (7*i));
+//     //     if(!(bishop & FILE_A || b & FILE_A)) b |= (bishop >> (9*i)) | (bishop << (7*i));
+//     // }
+
+// }

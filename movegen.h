@@ -10,3 +10,4 @@ void addPawnMove(std::vector<Move>& moveList, int from, int to, int flag, bool i
 void generatePawnMoves(const Board& b, std::vector<Move>& moveList);
 void initMoveTable();
 void generateKnightMoves(const Board& b, std::vector<Move>& moveList);
+//void generateBishopMoves(const Board& b, std::vector<Move>& moveList);
