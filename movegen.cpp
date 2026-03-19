@@ -68,7 +68,7 @@ void generatePawnMoves(const Board& b, std::vector<Move>& moveList){
 
 Bitboard KnightMoves[64];
 
-void initMoveTable(){
+void initKnightMoveTable(){
     for(int sq = 0; sq < 64; sq++){
         Bitboard moves = 0ULL;
         Bitboard knight = (1ULL << sq);
@@ -103,22 +103,42 @@ void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
     }
 }
 
-// void generateBishopMoves(const Board& b, std::vector<Move>& moveList){
-//     Bitboard bishops = (b.whiteMove) ? b.pieces[BISHOP_W] : b.pieces[BISHOP_B];
-//     Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+Bitboard bishopMoveTable[64][512];
 
-//     while(bishops){
-//         int fromSq = std::countr_zero(bishops);
-//         Bitboard bishop = (1ULL << fromSq);
-//         Bitboard moves = 0ULL;
-//         bool tr = false, tl = false, br = false, bl = false;
+void initBishopMoveTable(){
+    initBishopMask();
+    for(int sq = 0; sq < 64; sq++){
+        Bitboard mask = bishopMask[sq];
+        int bits = std::popcount(mask);
+        int combinations = 1 << bits;
+        int shift = 64 - bits;
 
-//         bishops &= (bishops - 1);
-//     }
+        for(int i = 0; i < combinations; i++){
+            Bitboard blockers = setBishopBlockers(i, bits, mask);
+            int index = ((blockers * BISHOP_MAGICS[sq]) >> shift);
+            Bitboard attacks = bishopAttacks(sq, blockers);
 
-//     // for(int i = 1; i <= 7; i++){
-//     //     if(!(bishop & FILE_H || b & FILE_H)) b |= (bishop << (9*i)) | (bishop >> (7*i));
-//     //     if(!(bishop & FILE_A || b & FILE_A)) b |= (bishop >> (9*i)) | (bishop << (7*i));
-//     // }
+            bishopMoveTable[sq][index] = attacks;
+        }
+    }
+}
 
-// }
+void generateBishopMoves(const Board& b, std::vector<Move>& moveList){
+    Bitboard bishops = (b.whiteMove) ? b.pieces[BISHOP_W] : b.pieces[BISHOP_B];
+    Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+    while(bishops){
+        int fromSq = std::countr_zero(bishops);
+        Bitboard blockers = b.allPieces & bishopMask[fromSq];
+        int bits = std::popcount(bishopMask[fromSq]);
+        int shift = 64 - bits;
+        int index = (blockers * BISHOP_MAGICS[fromSq]) >> shift;
+        Bitboard moves = bishopMoveTable[fromSq][index] & ~myPieces;
+        while(moves){
+            int toSq = std::countr_zero(moves);
+            int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
+            moveList.push_back(createMove(fromSq, toSq, flag));
+            moves &= (moves - 1);
+        }
+        bishops &= (bishops - 1);
+    }
+}

@@ -2,8 +2,17 @@
 #include "board.h"
 
 Bitboard bishopMask[64];
-Bitboard bishopMagic[64];
-Bitboard bishopAttackTable[64][512];
+const Bitboard BISHOP_MAGICS[64]{
+    0x1410200e00504108ULL, 0x1004c81084008002ULL, 0x1200a401028002ULL, 0x8208022008024ULL, 0x8040420580000c2ULL, 0x21104202a1000ULL, 0x84882012a000ULL, 0xa800808050108400ULL,
+    0x8001112001440080ULL, 0x209590104009204ULL, 0x5124880234002e32ULL, 0x2000082080200200ULL, 0x8040420201840ULL, 0x210148400268ULL, 0x10822508401ULL, 0x2010210048444400ULL,
+    0x210004104481880ULL, 0x808802001440080ULL, 0x5124000848002300ULL, 0x1015260404008040ULL, 0x158884400a00900ULL, 0x4010000b0121008ULL, 0x12010d0404020208ULL, 0x802220845000ULL,
+    0x2120080020a85104ULL, 0x8244600a02080100ULL, 0x18500020408480ULL, 0x280880200a0080ULL, 0x188840000802002ULL, 0x81060211008080ULL, 0x2008260001208220ULL, 0x20280002c0100ULL,
+    0x8010191800047002ULL, 0xc012002040441ULL, 0x10001c0208100080ULL, 0x4843100820840400ULL, 0x2240410040040040ULL, 0x4080220020480ULL, 0xd00c00c091840404ULL, 0x882140b01202498ULL,
+    0xd010420620c2400ULL, 0x802008460000421ULL, 0x4080120101001010ULL, 0x1400004200804800ULL, 0x200040ab2003400ULL, 0xa00208100500a220ULL, 0x28108a1884001922ULL, 0x10020080225103ULL,
+    0x21040104408020ULL, 0x841401048491ULL, 0x88020a4100a11ULL, 0x23001020880000ULL, 0x40182a0001ULL, 0x8202a100d220804ULL, 0xa0418808009088e0ULL, 0x305c80200420009ULL,
+    0x205a00804c022100ULL, 0x120024044146004ULL, 0x14514042009000ULL, 0x101504041048800ULL, 0x1000000d50203200ULL, 0x2102084013200ULL, 0x8400401220230ULL, 0x20c4840808082080ULL
+};
+
 
 //Creates bishopMask for each possible square 0-63
 // Example bishop mask for d4
@@ -36,7 +45,7 @@ int popLSB(Bitboard& b){
 
 
 //Helper function that takes in creates a possible mapping of blockers based on the binary of index
-Bitboard setBlockers(int index, int bits, Bitboard mask){
+Bitboard setBishopBlockers(int index, int bits, Bitboard mask){
     Bitboard blockers = 0ULL;
     Bitboard tempMask = mask;
 
@@ -96,7 +105,7 @@ int buildBishopAttackData(int sq, Bitboard blockers[512], Bitboard attacks[512])
     int possibleCombinations = (1U << relevantBits); //Maxes out a 2^9 possible blocker combinations
 
     for(int i = 0; i < possibleCombinations; i++){
-        blockers[i] = setBlockers(i, relevantBits, mask);
+        blockers[i] = setBishopBlockers(i, relevantBits, mask);
         attacks[i] = bishopAttacks(sq, blockers[i]);
     }
 
@@ -125,7 +134,7 @@ bool testBishopMagicNumber(int sq, Bitboard magic, const Bitboard blockers[512],
 }
 
 Bitboard randomU64(){
-    static std::mt19937_64 rng(0xC0FFEE123456789ULL);//0xC0FFEE123456789ULL
+    static std::mt19937_64 rng(0xFFFFFFFFFFFFFFFULL);//0xC0FFEE123456789ULL
     return rng();
 }
 
