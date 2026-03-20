@@ -1,5 +1,4 @@
 #include "movegen.h"
-#include <bit>
 
 
 
@@ -39,30 +38,26 @@ void generatePawnMoves(const Board& b, std::vector<Move>& moveList){
     }
     while(singlePush){
         //Find index of next 1 bit
-        int toSq = std::countr_zero(singlePush);
+        int toSq = popLSB(singlePush);
         int fromSq  = toSq + ((b.whiteMove) ? -8 : 8);
         addPawnMove(moveList, fromSq, toSq, QUIET, b.whiteMove);
-        singlePush &= (singlePush - 1);
     }
     while(doublePush){
-        int toSq = std::countr_zero(doublePush);
+        int toSq = popLSB(doublePush);
         int fromSq = toSq + ((b.whiteMove) ? -16 : 16);
         addPawnMove(moveList, fromSq, toSq, DOUBLE_PAWN_PUSH, b.whiteMove);
-        doublePush &= (doublePush - 1);
     }
     while(captureRight){
-        int toSq = std::countr_zero(captureRight);
+        int toSq = popLSB(captureRight);
         int fromSq = toSq + ((b.whiteMove) ? -9 : 9);
         int flag = (toSq == b.enPassantSq) ? EPCAPTURE : CAPTURE;
         addPawnMove(moveList, fromSq, toSq, flag, b.whiteMove);
-        captureRight &= (captureRight - 1);
     }
     while(captureLeft){
-        int toSq = std::countr_zero(captureLeft);
+        int toSq = popLSB(captureLeft);
         int fromSq = toSq + ((b.whiteMove) ? -7 : 7);
         int flag = (toSq == b.enPassantSq) ? EPCAPTURE : CAPTURE;
         addPawnMove(moveList, fromSq, toSq, flag, b.whiteMove);
-        captureLeft &= (captureLeft - 1);
     }
 }
 
@@ -90,16 +85,14 @@ void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
     Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
 
     while(knights){
-        int fromSq = std::countr_zero(knights);
+        int fromSq = popLSB(knights);
 
         Bitboard moves = KnightMoves[fromSq] & ~myPieces;
         while(moves){
-            int toSq = std::countr_zero(moves);
+            int toSq = popLSB(moves);
             int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
             moveList.push_back(createMove(fromSq, toSq, flag));
-            moves &= (moves - 1);
         }
-        knights &= (knights - 1);
     }
 }
 
@@ -114,7 +107,7 @@ void initBishopMoveTable(){
         int shift = 64 - bits;
 
         for(int i = 0; i < combinations; i++){
-            Bitboard blockers = setBishopBlockers(i, bits, mask);
+            Bitboard blockers = setBlockers(i, bits, mask);
             int index = ((blockers * BISHOP_MAGICS[sq]) >> shift);
             Bitboard attacks = bishopAttacks(sq, blockers);
 
@@ -127,18 +120,55 @@ void generateBishopMoves(const Board& b, std::vector<Move>& moveList){
     Bitboard bishops = (b.whiteMove) ? b.pieces[BISHOP_W] : b.pieces[BISHOP_B];
     Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
     while(bishops){
-        int fromSq = std::countr_zero(bishops);
+        int fromSq = popLSB(bishops);
         Bitboard blockers = b.allPieces & bishopMask[fromSq];
         int bits = std::popcount(bishopMask[fromSq]);
         int shift = 64 - bits;
         int index = (blockers * BISHOP_MAGICS[fromSq]) >> shift;
         Bitboard moves = bishopMoveTable[fromSq][index] & ~myPieces;
         while(moves){
-            int toSq = std::countr_zero(moves);
+            int toSq = popLSB(moves);
             int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
             moveList.push_back(createMove(fromSq, toSq, flag));
-            moves &= (moves - 1);
         }
-        bishops &= (bishops - 1);
     }
 }
+
+Bitboard rookMoveTable[64][4096];
+
+void initRookMoveTable(){
+    initRookMask();
+    for(int sq = 0; sq < 64; sq++){
+        Bitboard mask = rookMask[sq];
+        int bits = std::popcount(mask);
+        int combinations = 1 << bits;
+        int shift = 64 - bits;
+
+        for(int i = 0; i < combinations; i++){
+            Bitboard blockers = setBlockers(i, bits, mask);
+            int index = ((blockers * ROOK_MAGICS[sq]) >> shift);
+            Bitboard attacks = rookAttacks(sq, blockers);
+
+            rookMoveTable[sq][index] = attacks;
+        }
+    }
+}
+
+void generateRookMoves(const Board& b, std::vector<Move>& moveList){
+    Bitboard rooks = (b.whiteMove) ? b.pieces[ROOK_W] : b.pieces[ROOK_B];
+    Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+    while(rooks){
+        int fromSq = popLSB(rooks);
+        Bitboard blockers = b.allPieces & rookMask[fromSq];
+        int bits = std::popcount(rookMask[fromSq]);
+        int shift = 64 - bits;
+        int index = (blockers * ROOK_MAGICS[fromSq]) >> shift;
+        Bitboard moves = rookMoveTable[fromSq][index] & ~myPieces;
+        while(moves){
+            int toSq = popLSB(moves);
+            int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
+            moveList.push_back(createMove(fromSq, toSq, flag));
+        }
+    }
+}
+

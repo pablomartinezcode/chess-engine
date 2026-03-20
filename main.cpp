@@ -10,13 +10,12 @@ int main(void){
 	Board myBoard = generateBoard();
 	initKnightMoveTable();
 	initBishopMoveTable();
-	
-	
+	initRookMoveTable();
 
 	while (true)
 	{
 		std::vector<Move> moveList;
-		generateBishopMoves(myBoard, moveList);
+		generateRookMoves(myBoard, moveList);
 		for(const Move& m : moveList){
 			std::cout << "Move: " << m.getFrom() << " to " << m.getTo() << std::endl; 
 		}

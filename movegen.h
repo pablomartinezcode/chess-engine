@@ -3,6 +3,7 @@
 #include "board.h"
 #include "move.h"
 #include "magic.h"
+#include "defs.h"
 #include <vector>
 
 extern Bitboard KnightMoves[64];
@@ -14,3 +15,5 @@ void initKnightMoveTable();
 void generateKnightMoves(const Board& b, std::vector<Move>& moveList);
 void initBishopMoveTable();
 void generateBishopMoves(const Board& b, std::vector<Move>& moveList);
+void initRookMoveTable();
+void generateRookMoves(const Board& b, std::vector<Move>& moveList);

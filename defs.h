@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <bit>
 
 typedef uint64_t Bitboard;
 enum { WHITE, BLACK };
@@ -18,10 +19,17 @@ enum Squares {
 };
 
 const Bitboard FILE_A = 0x0101010101010101ULL;
-const Bitboard FILE_H = 0x8080808080808080ULL;
+const Bitboard FILE_B = FILE_A << 1;
+const Bitboard FILE_C = FILE_B << 1;
+const Bitboard FILE_D = FILE_C << 1;
+const Bitboard FILE_E = FILE_D << 1;
+const Bitboard FILE_F = FILE_E << 1;
+const Bitboard FILE_G = FILE_F << 1;
+const Bitboard FILE_H = FILE_G << 1;
 
-const Bitboard FILE_B = 0x0202020202020202ULL;
-const Bitboard FILE_G = 0x4040404040404040ULL;
+inline constexpr Bitboard FILES[8] = {
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
+};
 
 const Bitboard RANK_1 = 0x00000000000000FFULL;
 const Bitboard RANK_2 = 0x000000000000FF00ULL;
@@ -32,5 +40,15 @@ const Bitboard RANK_6 = 0x0000FF0000000000ULL;
 const Bitboard RANK_7 = 0x00FF000000000000ULL;
 const Bitboard RANK_8 = 0xFF00000000000000ULL;
 
+inline constexpr Bitboard RANKS[8] = {
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
+};
+
 const Bitboard PERIMETER = RANK_1 | RANK_8 | FILE_A | FILE_H;
+
+inline int popLSB(Bitboard& b){
+    int sq = std::countr_zero(b);
+    b &= (b - 1);
+    return sq;
+}
 
