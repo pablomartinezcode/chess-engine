@@ -11,7 +11,6 @@ extern Bitboard rookMask[64];
 extern const Bitboard ROOK_MAGICS[64];
 
 void initBishopMask();
-int popLSB(Bitboard& bb);
 Bitboard setBlockers(int index, int bits, Bitboard mask);
 Bitboard bishopAttacks(int sq, Bitboard blockers);
 int buildBishopAttackData(int sq, Bitboard blockers[512], Bitboard attacks[512]);

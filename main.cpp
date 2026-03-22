@@ -11,24 +11,27 @@ int main(void){
 	initKnightMoveTable();
 	initBishopMoveTable();
 	initRookMoveTable();
+	initKingMoveTable();
 
-	while (true)
-	{
-		std::vector<Move> moveList;
-		generateRookMoves(myBoard, moveList);
-		for(const Move& m : moveList){
-			std::cout << "Move: " << m.getFrom() << " to " << m.getTo() << std::endl; 
-		}
-		printBitboard(myBoard.allPieces);
-		std::string input;
-		std::cout << (myBoard.whiteMove ? "White" : "Black") << " to move: ";
-		std::cin >> input;
+	printBitboard(kingMoveTable[d4]);
 
-		if(input == "quit") break;
+	// while (true)
+	// {
+	// 	std::vector<Move> moveList;
+	// 	generateQueenMoves(myBoard, moveList);
+	// 	for(const Move& m : moveList){
+	// 		std::cout << "Move: " << m.getFrom() << " to " << m.getTo() << std::endl; 
+	// 	}
+	// 	printBitboard(myBoard.allPieces);
+	// 	std::string input;
+	// 	std::cout << (myBoard.whiteMove ? "White" : "Black") << " to move: ";
+	// 	std::cin >> input;
 
-		Move m  = parseMove(input);
-		makeMove(myBoard, m);
-	}
+	// 	if(input == "quit") break;
+
+	// 	Move m  = parseMove(input);
+	// 	makeMove(myBoard, m);
+	// }
 	
 
 	return 0;

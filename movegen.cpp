@@ -61,7 +61,7 @@ void generatePawnMoves(const Board& b, std::vector<Move>& moveList){
     }
 }
 
-Bitboard KnightMoves[64];
+Bitboard knightMoveTable[64];
 
 void initKnightMoveTable(){
     for(int sq = 0; sq < 64; sq++){
@@ -75,7 +75,7 @@ void initKnightMoveTable(){
         if (!(knight & (FILE_A | FILE_B))) moves |= (knight << 6) | (knight >> 10);
         if (!(knight & (FILE_G | FILE_H))) moves |= (knight << 10) | (knight >> 6);
 
-        KnightMoves[sq] = moves;
+        knightMoveTable[sq] = moves;
     }
 
 }
@@ -87,7 +87,7 @@ void generateKnightMoves(const Board& b, std::vector<Move>& moveList){
     while(knights){
         int fromSq = popLSB(knights);
 
-        Bitboard moves = KnightMoves[fromSq] & ~myPieces;
+        Bitboard moves = knightMoveTable[fromSq] & ~myPieces;
         while(moves){
             int toSq = popLSB(moves);
             int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
@@ -172,3 +172,85 @@ void generateRookMoves(const Board& b, std::vector<Move>& moveList){
     }
 }
 
+void generateQueenMoves(const Board& b, std::vector<Move>& moveList){
+    Bitboard queens = (b.whiteMove) ? b.pieces[QUEEN_W] : b.pieces[QUEEN_B];
+    Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+    while(queens){
+        int fromSq = popLSB(queens);
+        Bitboard bishopBlockers = b.allPieces & bishopMask[fromSq];
+        Bitboard rookBlockers = b.allPieces & rookMask[fromSq];
+        int bishopBits = std::popcount(bishopMask[fromSq]);
+        int bishopShift = 64 - bishopBits;
+        int bishopIndex = (bishopBlockers * BISHOP_MAGICS[fromSq]) >> bishopShift;
+        Bitboard moves = bishopMoveTable[fromSq][bishopIndex] & ~myPieces;
+
+        int rookBits = std::popcount(rookMask[fromSq]);
+        int rookShift = 64 - rookBits;
+        int rookIndex = (rookBlockers * ROOK_MAGICS[fromSq]) >> rookShift;
+        moves |= rookMoveTable[fromSq][rookIndex] & ~myPieces;
+        while(moves){
+            int toSq = popLSB(moves);
+            int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
+            moveList.push_back(createMove(fromSq, toSq, flag));
+        }
+    }
+}
+
+Bitboard kingMoveTable[64];
+
+void initKingMoveTable(){
+    for (int sq = 0; sq < 64; sq++){
+        Bitboard moves = 0ULL;
+        Bitboard king = (1ULL << sq);
+
+        moves |= (king << 8) | (king >> 8);
+        if(!(king & FILE_A)) moves |= (king >> 1) | (king << 7) | (king >> 9);
+        if(!(king & FILE_H)) moves |= (king << 1) | (king << 9) | (king >> 7);
+        
+        kingMoveTable[sq] = moves;
+    }
+}
+
+void generateKingMoves(const Board& b, std::vector<Move>& moveList){
+    Bitboard king = (b.whiteMove) ? b.pieces[KING_W] : b.pieces[KING_B];
+    Bitboard myPieces = (b.whiteMove) ? b.whitePieces : b.blackPieces;
+
+    int fromSq = popLSB(king);
+    Bitboard moves = kingMoveTable[fromSq] & ~myPieces;
+
+    while(moves){
+        int toSq = popLSB(moves);
+        int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
+        moveList.push_back(createMove(fromSq, toSq, flag));
+    }
+}
+
+bool isSquareAttacked(const Board& b, int sq, int attackerSide) {
+    // 1. Check Pawns (Reverse the capture logic)
+    Bitboard pawns = (attackerSide == WHITE) ? b.pieces[PAWN_W] : b.pieces[PAWN_B];
+    if (attackerSide == WHITE) {
+        if (((1ULL << sq) >> 7) & pawns & ~FILE_A) return true;
+        if (((1ULL << sq) >> 9) & pawns & ~FILE_H) return true;
+    } else {
+        if (((1ULL << sq) << 7) & pawns & ~FILE_H) return true;
+        if (((1ULL << sq) << 9) & pawns & ~FILE_A) return true;
+    }
+
+    // 2. Check Knights
+    if (knightMoveTable[sq] & ((attackerSide == WHITE) ? b.pieces[KNIGHT_W] : b.pieces[KNIGHT_B])) return true;
+
+    // 3. Check King
+    if (kingMoveTable[sq] & ((attackerSide == WHITE) ? b.pieces[KING_W] : b.pieces[KING_B])) return true;
+
+    // 4. Check Bishops/Queens (Sliders)
+    Bitboard bishopAttacks = bishopMoveTable[sq][(b.allPieces & bishopMask[sq]) * BISHOP_MAGICS[sq] >> (64 - std::popcount(bishopMask[sq]))];
+    Bitboard enemyBishops = (attackerSide == WHITE) ? (b.pieces[BISHOP_W] | b.pieces[QUEEN_W]) : (b.pieces[BISHOP_B] | b.pieces[QUEEN_B]);
+    if (bishopAttacks & enemyBishops) return true;
+
+    // 5. Check Rooks/Queens (Sliders)
+    Bitboard rookAttacksBB = rookMoveTable[sq][(b.allPieces & rookMask[sq]) * ROOK_MAGICS[sq] >> (64 - std::popcount(rookMask[sq]))];
+    Bitboard enemyRooks = (attackerSide == WHITE) ? (b.pieces[ROOK_W] | b.pieces[QUEEN_W]) : (b.pieces[ROOK_B] | b.pieces[QUEEN_B]);
+    if (rookAttacksBB & enemyRooks) return true;
+
+    return false;
+}

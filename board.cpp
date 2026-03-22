@@ -72,6 +72,13 @@ void makeMove(Board &b, Move m){
         b.enPassantSq = (b.whiteMove) ? (from + 8) : (from - 8);
     }
 
+    if(flags == EPCAPTURE){
+        int capSq = (b.whiteMove) ? (to - 8) : (to + 8);
+        b.pieces[(b.whiteMove) ? PAWN_B : PAWN_W] ^= (1ULL << capSq);
+    }
+    
+    
+
 
     //1. FIND MOVING PIECE
     int start = (b.whiteMove) ? 0 : 6;
@@ -88,11 +95,40 @@ void makeMove(Board &b, Move m){
 
     if(piece == -1) return; //Invalid Move
 
+
+    
+
     //2. REMOVE PIECE FROM ITS ORIGIN
     //   AND PLACE AT DESTINATION
     b.pieces[piece] ^= (1ULL << from);
-    b.pieces[piece] ^= (1ULL << to);
 
+    if(flags < PROMOTION_N) b.pieces[piece] ^= (1ULL << to);
+
+    if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
+        b.pieces[piece] ^= (1ULL << to);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 7);
+        b.pieces[promoPiece] |= (1ULL << to);
+    }
+
+    if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
+        b.pieces[piece] ^= (1ULL << to);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 11);
+        b.pieces[promoPiece] |= (1ULL << to);
+    }
+
+    if(flags == KING_CASTLE){
+        if(b.whiteMove){ 
+            b.pieces[ROOK_W] ^= (1ULL << h1) | (1ULL << f1);
+        }else{
+            b.pieces[ROOK_B] ^= (1ULL << h8) | (1ULL << f8);
+        }
+    }else if(flags == QUEEN_CASTLE){
+        if(b.whiteMove){ 
+            b.pieces[ROOK_W] ^= (1ULL << a1) | (1ULL << d1);
+        }else{
+            b.pieces[ROOK_B] ^= (1ULL << a8) | (1ULL << d8);
+        }
+    }
 
     //3. HANDLE CAPTURES AND REMOVE FROM BOARD
     int oppStart = (b.whiteMove) ? 6 : 0;
@@ -119,4 +155,15 @@ void makeMove(Board &b, Move m){
     //5. SWITCH SIDES
     b.whiteMove = !b.whiteMove;
 
-};
+    // If King moves, remove all rights for that side
+    if(piece == KING_W) b.castlingRights &= ~(WK | WQ);
+    if(piece == KING_B) b.castlingRights &= ~(BK | BQ);
+
+    // If a Rook moves (or is captured), remove that specific right
+    if (from == a1 || to == a1) b.castlingRights &= ~WQ;
+    if (from == h1 || to == h1) b.castlingRights &= ~WK;
+    if (from == a8 || to == a8) b.castlingRights &= ~BK;
+    if (from == h8 || to == h8) b.castlingRights &= ~BQ;
+    
+    
+}
