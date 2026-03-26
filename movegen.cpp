@@ -7,7 +7,7 @@ void addPawnMove(std::vector<Move>& moveList, int from, int to, int flag, bool i
 
     if (isPromotion) {
         // If the base flag was CAPTURE, we use the PROMO_CAPTURE versions
-        int base = (flag == CAPTURE) ? 12 : 8; // Assumes your enum order
+        int base = (flag == CAPTURE) ? 12 : 8;
         moveList.push_back(createMove(from, to, base));     // Knight
         moveList.push_back(createMove(from, to, base + 1)); // Bishop
         moveList.push_back(createMove(from, to, base + 2)); // Rook
@@ -223,6 +223,31 @@ void generateKingMoves(const Board& b, std::vector<Move>& moveList){
         int flag = ((1ULL << toSq) & b.allPieces) ? CAPTURE : QUIET;
         moveList.push_back(createMove(fromSq, toSq, flag));
     }
+
+    int opponent = b.whiteMove ? BLACK : WHITE;
+    if(b.whiteMove){
+        //Check if castling rights are in tact, and middle squares are empty
+        if ((b.castlingRights & WK) && !(b.allPieces & ((1ULL << f1) | (1ULL << g1)))) {
+            //Check if casting squares are under attack
+            if (!isSquareAttacked(b, e1, BLACK) && !isSquareAttacked(b, f1, BLACK) && !isSquareAttacked(b, g1, BLACK))
+                moveList.push_back(createMove(e1, g1, KING_CASTLE));
+        }
+        if ((b.castlingRights & WQ) && !(b.allPieces & ((1ULL << d1) | (1ULL << c1) | (1ULL << b1)))) {
+            if (!isSquareAttacked(b, e1, BLACK) && !isSquareAttacked(b, d1, BLACK) && !isSquareAttacked(b, c1, BLACK))
+                moveList.push_back(createMove(e1, c1, QUEEN_CASTLE));
+        }
+    }else{
+        if ((b.castlingRights & BK) && !(b.allPieces & ((1ULL << f8) | (1ULL << g8)))) {
+            //Check if casting squares are under attack
+            if (!isSquareAttacked(b, e8, WHITE) && !isSquareAttacked(b, f8, WHITE) && !isSquareAttacked(b, g8, WHITE))
+                moveList.push_back(createMove(e8, g8, KING_CASTLE));
+        }
+        //Check if castling rights are in tact
+        if ((b.castlingRights & BQ) && !(b.allPieces & ((1ULL << d8) | (1ULL << c8) | (1ULL << b8)))) {
+            if (!isSquareAttacked(b, e8, WHITE) && !isSquareAttacked(b, d8, WHITE) && !isSquareAttacked(b, c8, WHITE))
+                moveList.push_back(createMove(e8, c8, QUEEN_CASTLE));
+        }
+    }
 }
 
 bool isSquareAttacked(const Board& b, int sq, int attackerSide) {
@@ -253,4 +278,31 @@ bool isSquareAttacked(const Board& b, int sq, int attackerSide) {
     if (rookAttacksBB & enemyRooks) return true;
 
     return false;
+}
+
+std::vector<Move> generateLegalMoves(Board &b){
+    std::vector<Move> pseudoMoves;
+    std::vector<Move> legalMoves;
+
+    generatePawnMoves(b, pseudoMoves);
+    generateKnightMoves(b, pseudoMoves);
+    generateBishopMoves(b, pseudoMoves);
+    generateRookMoves(b, pseudoMoves);
+    generateQueenMoves(b, pseudoMoves);
+    generateKingMoves(b, pseudoMoves);
+
+    for(Move m : pseudoMoves){
+        Board tempBoard = b;
+        makeMove(tempBoard, m);
+
+        int opponentSide = b.whiteMove ? BLACK : WHITE;
+        Bitboard kingBB = tempBoard.pieces[(b.whiteMove) ? KING_W : KING_B];
+        int kingSq = std::countr_zero(kingBB);
+
+        if(!isSquareAttacked(tempBoard, kingSq, opponentSide)){
+            legalMoves.push_back(m);
+        }
+    }
+
+    return legalMoves;
 }

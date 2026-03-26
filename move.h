@@ -1,6 +1,9 @@
 #pragma once
 #include "defs.h"
 #include <string>
+#include <vector>
+
+struct Board;
 
 struct Move {       //FLAGS   TO    FROM
     uint16_t data;  // 0000 000000 000000
@@ -31,4 +34,4 @@ enum MoveFlags {
 
 Move createMove(int from, int to, int flags);
 int parseSquare(std::string sq);
-Move parseMove(std::string moveStr);
+Move parseMove(std::string moveStr, Board &b);

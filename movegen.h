@@ -22,3 +22,5 @@ void generateRookMoves(const Board& b, std::vector<Move>& moveList);
 void generateQueenMoves(const Board& b, std::vector<Move>& moveList);
 void initKingMoveTable();
 void generateKingMoves(const Board& b, std::vector<Move>& moveList);
+bool isSquareAttacked(const Board& b, int sq, int attackerSide);
+std::vector<Move> generateLegalMoves(Board &b);

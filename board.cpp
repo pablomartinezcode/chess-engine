@@ -96,22 +96,18 @@ void makeMove(Board &b, Move m){
     if(piece == -1) return; //Invalid Move
 
 
-    
-
     //2. REMOVE PIECE FROM ITS ORIGIN
-    //   AND PLACE AT DESTINATION
     b.pieces[piece] ^= (1ULL << from);
 
+    //Only place on to square if not a promotion
     if(flags < PROMOTION_N) b.pieces[piece] ^= (1ULL << to);
 
     if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
-        b.pieces[piece] ^= (1ULL << to);
         int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 7);
         b.pieces[promoPiece] |= (1ULL << to);
     }
 
     if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
-        b.pieces[piece] ^= (1ULL << to);
         int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 11);
         b.pieces[promoPiece] |= (1ULL << to);
     }
