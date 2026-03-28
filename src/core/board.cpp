@@ -158,8 +158,8 @@ void makeMove(Board &b, Move m){
     // If a Rook moves (or is captured), remove that specific right
     if (from == a1 || to == a1) b.castlingRights &= ~WQ;
     if (from == h1 || to == h1) b.castlingRights &= ~WK;
-    if (from == a8 || to == a8) b.castlingRights &= ~BK;
-    if (from == h8 || to == h8) b.castlingRights &= ~BQ;
+    if (from == a8 || to == a8) b.castlingRights &= ~BQ;
+    if (from == h8 || to == h8) b.castlingRights &= ~BK;
     
     
 }

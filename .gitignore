@@ -1,10 +1,6 @@
 #Compiled Binaries
+build/
 engine
-*.exe
-*.out
-*.o
-*.obj
-
 
 #Debug Files
 *.log

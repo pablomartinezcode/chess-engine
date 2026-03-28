@@ -23,18 +23,19 @@ void generatePawnMoves(const Board& b, std::vector<Move>& moveList){
     Bitboard doublePush;
     Bitboard captureRight;
     Bitboard captureLeft;
+    Bitboard epMask = (b.enPassantSq != -1) ? (1ULL << b.enPassantSq) : 0ULL;
     if(b.whiteMove){
         pawns = b.pieces[PAWN_W];
         singlePush = (pawns << 8) & ~b.allPieces;
         doublePush = (singlePush << 8) & ~b.allPieces & 0x00000000FF000000ULL;
-        captureRight = (pawns << 9) & (b.blackPieces | (1ULL << b.enPassantSq)) & ~FILE_A;
-        captureLeft = (pawns << 7) & (b.blackPieces | (1ULL << b.enPassantSq)) & ~FILE_H;
+        captureRight = (pawns << 9) & (b.blackPieces | epMask) & ~FILE_A;
+        captureLeft  = (pawns << 7) & (b.blackPieces | epMask) & ~FILE_H;
     }else{
         pawns = b.pieces[PAWN_B];
         singlePush = (pawns >> 8) & ~b.allPieces;
         doublePush = (singlePush >> 8) & ~b.allPieces & 0x000000FF00000000ULL;
-        captureRight = (pawns >> 9) & (b.whitePieces | (1ULL << b.enPassantSq)) & ~FILE_H;
-        captureLeft = (pawns >> 7) & (b.whitePieces | (1ULL << b.enPassantSq)) & ~FILE_A;
+        captureRight = (pawns >> 9) & (b.whitePieces | epMask) & ~FILE_H;
+        captureLeft = (pawns >> 7) & (b.whitePieces | epMask) & ~FILE_A;
     }
     while(singlePush){
         //Find index of next 1 bit

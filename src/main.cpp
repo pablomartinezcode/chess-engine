@@ -44,7 +44,7 @@ int main(void){
 	initRookMoveTable();
 	initKingMoveTable();
 
-	runPerft(myBoard, 6);
+	runPerft(myBoard, 5);
 
 	// while (true)
 	// {
