@@ -103,12 +103,12 @@ void makeMove(Board &b, Move m){
     if(flags < PROMOTION_N) b.pieces[piece] ^= (1ULL << to);
 
     if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
-        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 7);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMOTION_N);
         b.pieces[promoPiece] |= (1ULL << to);
     }
 
     if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
-        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - 11);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMO_CAPTURE_N);
         b.pieces[promoPiece] |= (1ULL << to);
     }
 
