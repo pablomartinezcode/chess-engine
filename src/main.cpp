@@ -3,6 +3,8 @@
 #include "move.h"
 #include "movegen.h"
 #include <chrono>
+#include "evaluate.h"
+#include "search.h"
 
 uint64_t perft(Board &b, int depth){
 	if(depth == 0) return 1ULL;
@@ -44,7 +46,46 @@ int main(void){
 	initRookMoveTable();
 	initKingMoveTable();
 
-	runPerft(myBoard, 5);
+	int searchDepth = 4;
+
+	while(true){
+		std::vector<Move> legalMoves = generateLegalMoves(myBoard);
+		if(legalMoves.empty()){
+			int kingSq = std::countr_zero(myBoard.pieces[(myBoard.whiteMove ? KING_W : KING_B)]);
+			if(isSquareAttacked(myBoard, kingSq, (myBoard.whiteMove ? BLACK : WHITE))){
+				std::cout << "Checkmate! " << (myBoard.whiteMove ? "Black" : "White") << " wins!" << std::endl;
+			}else{
+				std::cout << "Stalemate!" << std::endl;
+			}
+			break;
+		}
+		printBitboard(myBoard.allPieces);
+
+		if (myBoard.whiteMove){
+			std::string input;
+			std::cout << "Your move (e.g. e2e4): ";
+			std::cin >> input;
+			if(input == "quit") break;
+			Move m  = parseMove(input, myBoard);
+			if(m.data == 0){
+				std::cout << "Invalid Move!" << std::endl;
+				continue;
+			}
+			makeMove(myBoard, m);
+		}else{
+			std::cout << "Engine is thinking at depth " << searchDepth << std::endl;
+			Move bestMove = searchBestMove(myBoard, searchDepth);
+			makeMove(myBoard, bestMove);
+
+			char f1 = 'a' + (bestMove.getFrom() % 8);
+            char r1 = '1' + (bestMove.getFrom() / 8);
+            char f2 = 'a' + (bestMove.getTo() % 8);
+            char r2 = '1' + (bestMove.getTo() / 8);
+            std::cout << "Engine played: " << f1 << r1 << f2 << r2 << "\n";
+		}
+	}
+
+	//runPerft(myBoard, 5);
 
 	// while (true)
 	// {
@@ -71,6 +112,8 @@ int main(void){
 	// 		continue;
 	// 	}
 	// 	makeMove(myBoard, m);
+
+	// 	std::cout << "Evaluation: " << evaluate(myBoard) << std::endl;
 	// }
 	
 
