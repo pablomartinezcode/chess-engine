@@ -9,9 +9,9 @@ uint64_t perft(Board &b, int depth){
 	uint64_t nodes = 0;
 	std::vector<Move> moves = generateLegalMoves(b);
 	for(Move m: moves){
-		Board temp = b;
-		makeMove(temp, m);
-		nodes += perft(temp, depth - 1);
+		UndoInfo undo = makeMove(b, m);
+		nodes += perft(b, depth - 1);
+		unMakeMove(b, m, undo);
 	}
 	return nodes;
 }

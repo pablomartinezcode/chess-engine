@@ -59,30 +59,25 @@ void printBitboard(Bitboard bb) {
     std::cout << "    a b c d e f g h\n\n";
 }
 
-void makeMove(Board &b, Move m){
+
+
+UndoInfo makeMove(Board &b, Move m){
+    UndoInfo undo;
+    undo.movingPiece = -1;
+    undo.capturedPiece = -1;
+    undo.enPassantSq = b.enPassantSq;
+    undo.castlingRights = b.castlingRights;
+    undo.halfMoveClock = b.halfMoveClock;
+    undo.whiteMove = b.whiteMove;
+
     int from = m.getFrom();
     int to = m.getTo();
     int flags = m.getFlags();
     int piece = -1;
 
-    //RESET enPassantSq at the start of every move
-    b.enPassantSq = -1;
-
-    if(flags == DOUBLE_PAWN_PUSH){
-        b.enPassantSq = (b.whiteMove) ? (from + 8) : (from - 8);
-    }
-
-    if(flags == EPCAPTURE){
-        int capSq = (b.whiteMove) ? (to - 8) : (to + 8);
-        b.pieces[(b.whiteMove) ? PAWN_B : PAWN_W] ^= (1ULL << capSq);
-    }
-    
-    
-
-
     //1. FIND MOVING PIECE
-    int start = (b.whiteMove) ? 0 : 6;
-    int end = start + 6;
+    const int start = (b.whiteMove) ? 0 : 6;
+    const int end = start + 6;
     
     for(int i = start; i < end; i++){
         //Pushes bits in b.pieces[i] exactly "from" bits will bring forward 
@@ -92,10 +87,28 @@ void makeMove(Board &b, Move m){
             break;
         }
     }
+    undo.movingPiece = piece;
+    if(piece == -1) return undo; //Invalid Move
 
-    if(piece == -1) return; //Invalid Move
+    b.halfMoveClock++; //Increment half-move clock (reset later if pawn move or capture)
+    if(piece == PAWN_W || piece == PAWN_B || flags == CAPTURE || flags == EPCAPTURE || (flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q)) b.halfMoveClock = 0; //Reset half-move clock if pawn move
+    
+    //RESET enPassantSq at the start of every move
+    b.enPassantSq = -1;
 
 
+    if(flags == DOUBLE_PAWN_PUSH){
+        b.enPassantSq = (b.whiteMove) ? (from + 8) : (from - 8);
+    }
+
+    if(flags == EPCAPTURE){
+        int capSq = (b.whiteMove) ? (to - 8) : (to + 8);
+        int capPiece = (b.whiteMove) ? PAWN_B : PAWN_W;
+        b.pieces[capPiece] ^= (1ULL << capSq);
+        undo.capturedPiece = capPiece;
+        b.halfMoveClock = 0; //Reset half-move clock if capture
+    }
+    
     //2. REMOVE PIECE FROM ITS ORIGIN
     b.pieces[piece] ^= (1ULL << from);
 
@@ -103,12 +116,12 @@ void makeMove(Board &b, Move m){
     if(flags < PROMOTION_N) b.pieces[piece] ^= (1ULL << to);
 
     if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
-        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMOTION_N);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMOTION_N) + 1;
         b.pieces[promoPiece] |= (1ULL << to);
     }
 
     if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
-        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMO_CAPTURE_N);
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMO_CAPTURE_N) + 1;
         b.pieces[promoPiece] |= (1ULL << to);
     }
 
@@ -127,16 +140,19 @@ void makeMove(Board &b, Move m){
     }
 
     //3. HANDLE CAPTURES AND REMOVE FROM BOARD
-    int oppStart = (b.whiteMove) ? 6 : 0;
-    int oppEnd = oppStart + 6;
+    if(flags != EPCAPTURE){
+        int oppStart = (b.whiteMove) ? 6 : 0;
+        int oppEnd = oppStart + 6;
 
-    for(int i = oppStart; i < oppEnd; i++){
-        if((b.pieces[i] >> to) & 1ULL){
-            b.pieces[i] ^= (1ULL << to);
-            break;
+        for(int i = oppStart; i < oppEnd; i++){
+            if((b.pieces[i] >> to) & 1ULL){
+                b.pieces[i] ^= (1ULL << to);
+                undo.capturedPiece = i;
+                b.halfMoveClock = 0; //Reset half-move clock if capture
+                break;
+            }
         }
     }
-
 
     //4. UPDATE COMPOSITE BITBOARDS
     b.whitePieces = 0ULL;
@@ -161,5 +177,67 @@ void makeMove(Board &b, Move m){
     if (from == a8 || to == a8) b.castlingRights &= ~BQ;
     if (from == h8 || to == h8) b.castlingRights &= ~BK;
     
-    
+    return undo;
+}
+
+void unMakeMove(Board &b, Move m, UndoInfo undo){
+    int from = m.getFrom();
+    int to = m.getTo();
+    int flags = m.getFlags();
+
+    b.whiteMove = undo.whiteMove;
+    b.enPassantSq = undo.enPassantSq;
+    b.castlingRights = undo.castlingRights;
+    b.halfMoveClock = undo.halfMoveClock;
+    int piece = undo.movingPiece;
+
+    //1. Undo Castling
+    if(flags == KING_CASTLE){
+        if(b.whiteMove){ 
+            b.pieces[ROOK_W] ^= (1ULL << h1) | (1ULL << f1);
+        }else{
+            b.pieces[ROOK_B] ^= (1ULL << h8) | (1ULL << f8);
+        }
+    }else if(flags == QUEEN_CASTLE){
+        if(b.whiteMove){ 
+            b.pieces[ROOK_W] ^= (1ULL << a1) | (1ULL << d1);
+        }else{
+            b.pieces[ROOK_B] ^= (1ULL << a8) | (1ULL << d8);
+        }
+    }
+
+    //2. Move piece back to original square
+    if(flags < PROMOTION_N){
+        b.pieces[piece] ^= (1ULL << to);
+    }
+
+    if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMOTION_N) + 1;
+        b.pieces[promoPiece] ^= (1ULL << to);
+    }
+    if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
+        int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMO_CAPTURE_N) + 1;
+        b.pieces[promoPiece] ^= (1ULL << to);
+    }
+
+    b.pieces[piece] ^= (1ULL << from);
+
+    //3. Restore captured piece if there was one
+    if(flags == EPCAPTURE){
+        int capSq = (b.whiteMove) ? (to - 8) : (to + 8);
+        if(undo.capturedPiece != -1){
+            b.pieces[undo.capturedPiece] ^= (1ULL << capSq);
+        }
+    }else{
+        if(undo.capturedPiece != -1){
+            b.pieces[undo.capturedPiece] ^= (1ULL << to);
+        }
+    }
+
+    //4. Update composite bitboards
+    b.whitePieces = 0ULL;
+    for (int i = 0; i < 6; i++) b.whitePieces |= b.pieces[i];
+    b.blackPieces = 0ULL;
+    for (int i = 6; i < 12; i++) b.blackPieces |= b.pieces[i];
+    b.allPieces = b.whitePieces | b.blackPieces;
 }

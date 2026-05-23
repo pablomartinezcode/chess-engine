@@ -293,16 +293,16 @@ std::vector<Move> generateLegalMoves(Board &b){
     generateKingMoves(b, pseudoMoves);
 
     for(Move m : pseudoMoves){
-        Board tempBoard = b;
-        makeMove(tempBoard, m);
-
-        int opponentSide = b.whiteMove ? BLACK : WHITE;
-        Bitboard kingBB = tempBoard.pieces[(b.whiteMove) ? KING_W : KING_B];
+        UndoInfo undo = makeMove(b, m);
+        // After making the move, check if our king is in check. If it is, it's not a legal move
+        int opponentSide = b.whiteMove ? WHITE : BLACK;
+        Bitboard kingBB = b.pieces[(b.whiteMove) ? KING_B : KING_W];
         int kingSq = std::countr_zero(kingBB);
 
-        if(!isSquareAttacked(tempBoard, kingSq, opponentSide)){
+        if(!isSquareAttacked(b, kingSq, opponentSide)){
             legalMoves.push_back(m);
         }
+        unMakeMove(b, m, undo);
     }
 
     return legalMoves;
