@@ -3,6 +3,7 @@
 #include "move.h"
 
 typedef struct UndoInfo{
+	Bitboard hashKey; //Zobrist hash key before the move was made
 	int movingPiece;
 	int capturedPiece;
 	int enPassantSq;
@@ -21,6 +22,8 @@ typedef struct Board{
 	int enPassantSq;
 	int castlingRights;
 	int halfMoveClock;
+
+	Bitboard hashKey; //Zobrist hash key for the current position
 }Board;
 
 Board generateBoard();

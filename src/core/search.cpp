@@ -3,6 +3,7 @@
 #include "evaluate.h"
 #include <iostream>
 #include <algorithm> //std::sort
+#include "tt.h"
 
 bool isCapture(Move m) {
     int flags = m.getFlags();
@@ -18,7 +19,11 @@ int getPieceAt(const Board& b, int sq){
     return -1; //No piece found
 }
 
-int scoreMove(const Board& b, Move m){
+int scoreMove(const Board& b, Move m, Move ttMove){
+    if (m.data == ttMove.data && m.data != 0) {
+        return 10000; //Highest score for transposition table move
+    }
+    
     if(isCapture(m)){
         int victim = getPieceAt(b, m.getTo());
         int attacker = getPieceAt(b, m.getFrom());
@@ -31,9 +36,9 @@ int scoreMove(const Board& b, Move m){
     return 0; //Non-captures are scored as 0 for now
 }
 
-void orderMoves(Board& b, std::vector<Move>& moves){
-    std::sort(moves.begin(), moves.end(), [&b](Move a, Move b_move){
-        return scoreMove(b, a) < scoreMove(b, b_move); //Sort in descending order of score
+void orderMoves(const Board& b, std::vector<Move>& moves, Move ttMove = createMove(0, 0, 0)){
+    std::sort(moves.begin(), moves.end(), [&b, ttMove](Move a, Move b_move){
+        return scoreMove(b, a, ttMove) > scoreMove(b, b_move, ttMove);
     });
 }
 
@@ -68,6 +73,14 @@ int quiescence(Board& b, int alpha, int beta){
 }
 
 int negamax(Board& b, int depth, int alpha, int beta){
+
+    //Probe transposition table for existing evaluation
+    Move ttMove = createMove(0, 0, 0);
+    int ttScore = 0;
+    if(probeTT(b.hashKey, depth, alpha, beta, ttScore, ttMove)){
+        return ttScore;
+    }
+    
     if(depth == 0) {
         return quiescence(b, alpha, beta);
     }
@@ -81,13 +94,16 @@ int negamax(Board& b, int depth, int alpha, int beta){
 
         if(isSquareAttacked(b, kingSq, opponentSide)){
             //Checkmate
-            return -MATE_SCORE + depth;
+            return -MATE_SCORE - depth;
         }
         //Stalemate
         return 0;
     }
 
-    orderMoves(b, moves); //Order moves to improve alpha-beta pruning
+    orderMoves(b, moves, ttMove); //Order moves to improve alpha-beta pruning
+
+    int flag = TT_ALPHA;
+    Move bestMoveThisPosition = createMove(0, 0, 0);
 
     for (Move m : moves){
         UndoInfo undo = makeMove(b, m);
@@ -97,12 +113,16 @@ int negamax(Board& b, int depth, int alpha, int beta){
         unMakeMove(b, m, undo);
 
         if(score >= beta){
+            storeTT(b.hashKey, depth, beta, TT_BETA, m); //Store in transposition table as a beta cutoff
             return beta; //Fail-hard beta cutoff
         }
         if(score > alpha){
+            flag = TT_EXACT;
             alpha = score; //Best score so far
+            bestMoveThisPosition = m;
         }
     }
+    storeTT(b.hashKey, depth, alpha, flag, bestMoveThisPosition);
     return alpha;
 }
 

@@ -1,5 +1,6 @@
 #include "board.h"
 #include <iostream>
+#include "zobrist.h"
 
 Board generateBoard(){
 	Board b;
@@ -63,6 +64,7 @@ void printBitboard(Bitboard bb) {
 
 UndoInfo makeMove(Board &b, Move m){
     UndoInfo undo;
+    undo.hashKey = b.hashKey; //Store hash key before move for unmake
     undo.movingPiece = -1;
     undo.capturedPiece = -1;
     undo.enPassantSq = b.enPassantSq;
@@ -74,6 +76,12 @@ UndoInfo makeMove(Board &b, Move m){
     int to = m.getTo();
     int flags = m.getFlags();
     int piece = -1;
+
+    b.hashKey ^= castlingKeys[b.castlingRights]; //Remove old castling rights from hash
+    if(b.enPassantSq != -1){
+        b.hashKey ^= enPassantKeys[b.enPassantSq]; //Remove old en passant square from hash
+    }
+    b.hashKey ^= sideKey; //Remove old side to move from hash
 
     //1. FIND MOVING PIECE
     const int start = (b.whiteMove) ? 0 : 6;
@@ -105,37 +113,48 @@ UndoInfo makeMove(Board &b, Move m){
         int capSq = (b.whiteMove) ? (to - 8) : (to + 8);
         int capPiece = (b.whiteMove) ? PAWN_B : PAWN_W;
         b.pieces[capPiece] ^= (1ULL << capSq);
+        b.hashKey ^= pieceKeys[capPiece][capSq]; //Update hash for captured pawn
         undo.capturedPiece = capPiece;
         b.halfMoveClock = 0; //Reset half-move clock if capture
     }
     
     //2. REMOVE PIECE FROM ITS ORIGIN
     b.pieces[piece] ^= (1ULL << from);
+    b.hashKey ^= pieceKeys[piece][from]; //Update hash for moved piece
 
     //Only place on to square if not a promotion
-    if(flags < PROMOTION_N) b.pieces[piece] ^= (1ULL << to);
+    if(flags < PROMOTION_N){
+        b.pieces[piece] ^= (1ULL << to);
+        b.hashKey ^= pieceKeys[piece][to]; //Update hash for moved piece
+    } 
 
     if(flags >= PROMOTION_N && flags <= PROMOTION_Q){
         int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMOTION_N) + 1;
         b.pieces[promoPiece] |= (1ULL << to);
+        b.hashKey ^= pieceKeys[promoPiece][to]; //Update hash for promoted piece
     }
 
     if(flags >= PROMO_CAPTURE_N && flags <= PROMO_CAPTURE_Q){
         int promoPiece = (b.whiteMove ? PAWN_W : PAWN_B) + (flags - PROMO_CAPTURE_N) + 1;
         b.pieces[promoPiece] |= (1ULL << to);
+        b.hashKey ^= pieceKeys[promoPiece][to]; //Update hash for promoted piece
     }
 
     if(flags == KING_CASTLE){
         if(b.whiteMove){ 
             b.pieces[ROOK_W] ^= (1ULL << h1) | (1ULL << f1);
+            b.hashKey ^= pieceKeys[ROOK_W][h1] ^ pieceKeys[ROOK_W][f1]; //Update hash for rook move
         }else{
             b.pieces[ROOK_B] ^= (1ULL << h8) | (1ULL << f8);
+            b.hashKey ^= pieceKeys[ROOK_B][h8] ^ pieceKeys[ROOK_B][f8]; //Update hash for rook move
         }
     }else if(flags == QUEEN_CASTLE){
         if(b.whiteMove){ 
             b.pieces[ROOK_W] ^= (1ULL << a1) | (1ULL << d1);
+            b.hashKey ^= pieceKeys[ROOK_W][a1] ^ pieceKeys[ROOK_W][d1]; //Update hash for rook move
         }else{
             b.pieces[ROOK_B] ^= (1ULL << a8) | (1ULL << d8);
+            b.hashKey ^= pieceKeys[ROOK_B][a8] ^ pieceKeys[ROOK_B][d8]; //Update hash for rook move
         }
     }
 
@@ -147,6 +166,7 @@ UndoInfo makeMove(Board &b, Move m){
         for(int i = oppStart; i < oppEnd; i++){
             if((b.pieces[i] >> to) & 1ULL){
                 b.pieces[i] ^= (1ULL << to);
+                b.hashKey ^= pieceKeys[i][to]; //Update hash for captured piece
                 undo.capturedPiece = i;
                 b.halfMoveClock = 0; //Reset half-move clock if capture
                 break;
@@ -177,10 +197,16 @@ UndoInfo makeMove(Board &b, Move m){
     if (from == a8 || to == a8) b.castlingRights &= ~BQ;
     if (from == h8 || to == h8) b.castlingRights &= ~BK;
     
+    b.hashKey ^= castlingKeys[b.castlingRights]; //Update hash for new castling rights
+    if(b.enPassantSq != -1){
+        b.hashKey ^= enPassantKeys[b.enPassantSq]; //Update hash for new en passant square
+    }
     return undo;
 }
 
 void unMakeMove(Board &b, Move m, UndoInfo undo){
+    b.hashKey = undo.hashKey; //Restore hash key to value before move was made
+
     int from = m.getFrom();
     int to = m.getTo();
     int flags = m.getFlags();
