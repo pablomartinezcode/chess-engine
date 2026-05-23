@@ -32,3 +32,4 @@ void printBitboard(Bitboard bb);
 
 UndoInfo makeMove(Board &b, Move m);
 void unMakeMove(Board &b, Move m, UndoInfo info);
+void parseFEN(std::string fen, Board& b);

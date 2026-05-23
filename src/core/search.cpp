@@ -129,7 +129,7 @@ int negamax(Board& b, int depth, int alpha, int beta){
 Move searchBestMove(Board& b, int depth){
     std::vector<Move> moves = generateLegalMoves(b);
     orderMoves(b, moves); //Order moves to improve alpha-beta pruning
-    Move bestMove;
+    Move bestMove = createMove(0, 0, 0);
 
     int alpha = -INF;
     int beta = INF;

@@ -1,6 +1,9 @@
 #include "board.h"
 #include <iostream>
 #include "zobrist.h"
+#include <cctype>
+#include <sstream>
+#include <string>
 
 Board generateBoard(){
 	Board b;
@@ -264,6 +267,77 @@ void unMakeMove(Board &b, Move m, UndoInfo undo){
     b.whitePieces = 0ULL;
     for (int i = 0; i < 6; i++) b.whitePieces |= b.pieces[i];
     b.blackPieces = 0ULL;
+    for (int i = 6; i < 12; i++) b.blackPieces |= b.pieces[i];
+    b.allPieces = b.whitePieces | b.blackPieces;
+}
+
+void parseFEN(std::string fen, Board& b) {
+    // Reset the board completely
+    for (int i = 0; i < 12; i++) b.pieces[i] = 0ULL;
+    b.whitePieces = 0ULL;
+    b.blackPieces = 0ULL;
+    b.allPieces = 0ULL;
+    b.castlingRights = 0;
+    b.enPassantSq = -1;
+    b.halfMoveClock = 0;
+
+    std::stringstream ss(fen);
+    std::string piecePlacement, activeColor, castling, enPassant, halfMove, fullMove;
+    ss >> piecePlacement >> activeColor >> castling >> enPassant >> halfMove >> fullMove;
+
+    int rank = 7; // Rank 8 (index 7)
+    int file = 0; // File A (index 0)
+
+    for (char c : piecePlacement) {
+        if (c == '/') {
+            rank--;
+            file = 0;
+        } else if (isdigit(c)) {
+            file += (c - '0');
+        } else {
+            int piece = -1;
+            switch (c) {
+                case 'P': piece = PAWN_W; break;
+                case 'N': piece = KNIGHT_W; break;
+                case 'B': piece = BISHOP_W; break;
+                case 'R': piece = ROOK_W; break;
+                case 'Q': piece = QUEEN_W; break;
+                case 'K': piece = KING_W; break;
+                case 'p': piece = PAWN_B; break;
+                case 'n': piece = KNIGHT_B; break;
+                case 'b': piece = BISHOP_B; break;
+                case 'r': piece = ROOK_B; break;
+                case 'q': piece = QUEEN_B; break;
+                case 'k': piece = KING_B; break;
+            }
+            if (piece != -1) {
+                b.pieces[piece] |= (1ULL << (rank * 8 + file));
+                file++;
+            }
+        }
+    }
+
+    b.whiteMove = (activeColor == "w");
+
+    if (castling != "-") {
+        for (char c : castling) {
+            if (c == 'K') b.castlingRights |= WK;
+            if (c == 'Q') b.castlingRights |= WQ;
+            if (c == 'k') b.castlingRights |= BK;
+            if (c == 'q') b.castlingRights |= BQ;
+        }
+    }
+
+    if (enPassant != "-") {
+        int f = enPassant[0] - 'a';
+        int r = enPassant[1] - '1';
+        b.enPassantSq = r * 8 + f;
+    }
+
+    b.halfMoveClock = halfMove.empty() ? 0 : std::stoi(halfMove);
+
+    // Rebuild composite bitboards
+    for (int i = 0; i < 6; i++) b.whitePieces |= b.pieces[i];
     for (int i = 6; i < 12; i++) b.blackPieces |= b.pieces[i];
     b.allPieces = b.whitePieces | b.blackPieces;
 }

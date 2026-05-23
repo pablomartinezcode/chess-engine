@@ -52,16 +52,22 @@ void uciLoop(Board& b) {
             std::string posType;
             ss >> posType;
             
-            // Re-initialize the board state
             if (posType == "startpos") {
                 b = generateBoard();
-                b.hashKey = generateHash(b); // Crucial: Rebuild the starting hash
+                b.hashKey = generateHash(b); 
+            } else if (posType == "fen") {
+                // PyChess sends FEN as 6 separate string tokens, we must read and combine them
+                std::string fenPart, color, castling, ep, half, full;
+                ss >> fenPart >> color >> castling >> ep >> half >> full;
+                std::string fullFen = fenPart + " " + color + " " + castling + " " + ep + " " + half + " " + full;
+                
+                parseFEN(fullFen, b);
+                b.hashKey = generateHash(b);
             }
             
-            // If the GUI sends moves, loop through and play them on the board
+            // Check if the GUI appended "moves" to the end of the position string
             std::string token;
-            ss >> token;
-            if (token == "moves") {
+            if (ss >> token && token == "moves") {
                 std::string moveStr;
                 while (ss >> moveStr) {
                     Move m = parseMove(moveStr, b);
