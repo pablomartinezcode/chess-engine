@@ -8,3 +8,5 @@ const int ROOK_VALUE = 500;
 const int QUEEN_VALUE = 900;
 
 int evaluate(Board &b);
+
+int getPieceValue(int piece);
