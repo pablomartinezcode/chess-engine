@@ -7,3 +7,9 @@ engine
 
 #VS Code
 *.vscode/
+
+#Python
+venv/
+.venv/
+env/
+
