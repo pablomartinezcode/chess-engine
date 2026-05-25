@@ -78,9 +78,38 @@ void uciLoop(Board& b) {
                 }
             }
         } else if (command == "go") {
-            // GUI told us to think. For now, hardcode depth 6. 
-            // Later we will parse 'go wtime X btime Y' for clock management.
-            Move bestMove = searchBestMove(b, 6);
+            int movetimeMs = -1;
+            int depth = -1;
+            int wtime = -1, btime = -1;
+            int winc = 0, binc = 0;
+            int movestogo = -1;
+
+            std::string token;
+            while (ss >> token) {
+                if (token == "movetime") ss >> movetimeMs;
+                else if (token == "depth") ss >> depth;
+                else if (token == "wtime") ss >> wtime;
+                else if (token == "btime") ss >> btime;
+                else if (token == "winc") ss >> winc;
+                else if (token == "binc") ss >> binc;
+                else if (token == "movestogo") ss >> movestogo;
+            }
+
+            Move bestMove;
+            if (movetimeMs > 0) {
+                bestMove = searchBestMoveTimed(b, std::chrono::milliseconds(movetimeMs));
+            } else if (depth > 0) {
+                bestMove = searchBestMove(b, depth);
+            } else if ((b.whiteMove && wtime > 0) || (!b.whiteMove && btime > 0)) {
+                int remaining = b.whiteMove ? wtime : btime;
+                int inc = b.whiteMove ? winc : binc;
+                int movesLeft = (movestogo > 0) ? movestogo : 30;
+                int allocation = (remaining / movesLeft) + (inc / 2);
+                if (allocation < 5) allocation = 5;
+                bestMove = searchBestMoveTimed(b, std::chrono::milliseconds(allocation));
+            } else {
+                bestMove = searchBestMove(b, 6);
+            }
             std::cout << "bestmove " << moveToUCI(bestMove) << std::endl;
         } else if (command == "quit") {
             break;

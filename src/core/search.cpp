@@ -3,7 +3,19 @@
 #include "evaluate.h"
 #include <iostream>
 #include <algorithm> //std::sort
+#include <chrono>
 #include "tt.h"
+
+namespace {
+    bool g_timeLimitedSearch = false;
+    std::chrono::steady_clock::time_point g_stopTime;
+    bool g_searchAborted = false;
+}
+
+bool searchTimeUp() {
+    if (!g_timeLimitedSearch) return false;
+    return std::chrono::steady_clock::now() >= g_stopTime;
+}
 
 bool isCapture(Move m) {
     int flags = m.getFlags();
@@ -43,6 +55,11 @@ void orderMoves(const Board& b, std::vector<Move>& moves, Move ttMove = createMo
 }
 
 int quiescence(Board& b, int alpha, int beta){
+    if(searchTimeUp()){
+        g_searchAborted = true;
+        return alpha;
+    }
+
     int eval = evaluate(b);
     int stand_pat = (b.whiteMove) ? eval : -eval;
     if(stand_pat >= beta){
@@ -75,6 +92,10 @@ int quiescence(Board& b, int alpha, int beta){
 
 
 int negamax(Board& b, int depth, int alpha, int beta){
+    if(searchTimeUp()){
+        g_searchAborted = true;
+        return alpha;
+    }
 
     //Probe transposition table for existing evaluation
     Move ttMove = createMove(0, 0, 0);
@@ -150,5 +171,65 @@ Move searchBestMove(Board& b, int depth){
             alpha = score;
         }
     }
+    return bestMove;
+}
+
+Move searchBestMoveTimed(Board& b, std::chrono::milliseconds moveTime, int maxDepth){
+    if(moveTime.count() <= 0){
+        moveTime = std::chrono::milliseconds(1);
+    }
+
+    std::vector<Move> rootMoves = generateLegalMoves(b);
+    if(rootMoves.empty()) return createMove(0, 0, 0);
+
+    Move bestMove = rootMoves[0];
+
+    g_timeLimitedSearch = true;
+    g_stopTime = std::chrono::steady_clock::now() + moveTime;
+    g_searchAborted = false;
+
+    for(int depth = 1; depth <= maxDepth; depth++){
+        if(searchTimeUp()) break;
+
+        Move iterationBest = createMove(0, 0, 0);
+        int alpha = -INF;
+        int beta = INF;
+        int bestScore = -INF;
+
+        std::vector<Move> moves = generateLegalMoves(b);
+        orderMoves(b, moves);
+
+        for(Move m : moves){
+            if(searchTimeUp()){
+                g_searchAborted = true;
+                break;
+            }
+
+            UndoInfo undo = makeMove(b, m);
+            int score = -negamax(b, depth - 1, -beta, -alpha);
+            unMakeMove(b, m, undo);
+
+            if(g_searchAborted){
+                break;
+            }
+
+            if(score > bestScore){
+                bestScore = score;
+                iterationBest = m;
+            }
+
+            if(score > alpha){
+                alpha = score;
+            }
+        }
+
+        if(!g_searchAborted && iterationBest.data != 0){
+            bestMove = iterationBest;
+        } else {
+            break;
+        }
+    }
+
+    g_timeLimitedSearch = false;
     return bestMove;
 }
