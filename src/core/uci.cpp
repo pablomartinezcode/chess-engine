@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <chrono>
 
 // Helper to convert our internal Move to a UCI string (e.g., e2e4, e7e8q)
 std::string moveToUCI(Move m) {

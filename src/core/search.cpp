@@ -72,6 +72,8 @@ int quiescence(Board& b, int alpha, int beta){
     return alpha;
 }
 
+
+
 int negamax(Board& b, int depth, int alpha, int beta){
 
     //Probe transposition table for existing evaluation
